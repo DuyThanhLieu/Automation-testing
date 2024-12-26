@@ -1,0 +1,262 @@
+[
+  {
+    "name": "_us",
+    "value": "1725084341",
+    "domain": "music.busai.me",
+    "path": "/themes/default/js/lib/sweetalert2/dist",
+    "expires": 1759557940.604076,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_us",
+    "value": "1725084343",
+    "domain": "music.busai.me",
+    "path": "/endpoints",
+    "expires": 1759557942.730993,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "PHPSESSID",
+    "value": "d0efa9dd61c058e93d33573c9e2e2882",
+    "domain": "music.busai.me",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_us",
+    "value": "1725084340",
+    "domain": "music.busai.me",
+    "path": "/",
+    "expires": 1759557939.877518,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "YSC",
+    "value": "lmoNDeGY590",
+    "domain": ".youtube.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "VISITOR_INFO1_LIVE",
+    "value": "_TR5WeWcP9Y",
+    "domain": ".youtube.com",
+    "path": "/",
+    "expires": 1740549941.854296,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "VISITOR_PRIVACY_METADATA",
+    "value": "CgJWThIEGgAgCw%3D%3D",
+    "domain": ".youtube.com",
+    "path": "/",
+    "expires": 1740549941.854355,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "stel_ssid",
+    "value": "2b908386fcb53855a0_8900503057322223901",
+    "domain": "oauth.telegram.org",
+    "path": "/",
+    "expires": 1756828707.308971,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "m",
+    "value": "5a1b2540-d443-44b1-a484-a5b045a03653ee9296",
+    "domain": "m.stripe.com",
+    "path": "/",
+    "expires": 1759557947.676141,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "__stripe_mid",
+    "value": "3fce32a6-3b4d-4932-adc8-c319a77c48c2c6d939",
+    "domain": ".music.busai.me",
+    "path": "/",
+    "expires": 1756533947,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "__stripe_sid",
+    "value": "c37fd2ed-da94-4103-abd1-211194452642201573",
+    "domain": ".music.busai.me",
+    "path": "/",
+    "expires": 1724999747,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "stel_tsession_84339824931",
+    "value": "_tWvjM8V7vASQ-5jr0P4xza5",
+    "domain": "oauth.telegram.org",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "stel_tsession",
+    "value": "_tWvjM8V7vASQ-5jr0P4xza5",
+    "domain": "oauth.telegram.org",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "_us",
+    "value": "1725084341",
+    "domain": "music.busai.me",
+    "path": "/themes/default/js/lib/sweetalert2/dist",
+    "expires": 1759557940.604076,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_us",
+    "value": "1725084343",
+    "domain": "music.busai.me",
+    "path": "/endpoints",
+    "expires": 1759557942.730993,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "PHPSESSID",
+    "value": "d0efa9dd61c058e93d33573c9e2e2882",
+    "domain": "music.busai.me",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_us",
+    "value": "1725084340",
+    "domain": "music.busai.me",
+    "path": "/",
+    "expires": 1759557939.877518,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "YSC",
+    "value": "lmoNDeGY590",
+    "domain": ".youtube.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "VISITOR_INFO1_LIVE",
+    "value": "_TR5WeWcP9Y",
+    "domain": ".youtube.com",
+    "path": "/",
+    "expires": 1740549941.854296,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "VISITOR_PRIVACY_METADATA",
+    "value": "CgJWThIEGgAgCw%3D%3D",
+    "domain": ".youtube.com",
+    "path": "/",
+    "expires": 1740549941.854355,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "stel_ssid",
+    "value": "2b908386fcb53855a0_8900503057322223901",
+    "domain": "oauth.telegram.org",
+    "path": "/",
+    "expires": 1756828707.308971,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "m",
+    "value": "5a1b2540-d443-44b1-a484-a5b045a03653ee9296",
+    "domain": "m.stripe.com",
+    "path": "/",
+    "expires": 1759557947.676141,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "__stripe_mid",
+    "value": "3fce32a6-3b4d-4932-adc8-c319a77c48c2c6d939",
+    "domain": ".music.busai.me",
+    "path": "/",
+    "expires": 1756533947,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "__stripe_sid",
+    "value": "c37fd2ed-da94-4103-abd1-211194452642201573",
+    "domain": ".music.busai.me",
+    "path": "/",
+    "expires": 1724999747,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "stel_tsession_84339824931",
+    "value": "_tWvjM8V7vASQ-5jr0P4xza5",
+    "domain": "oauth.telegram.org",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "stel_tsession",
+    "value": "_tWvjM8V7vASQ-5jr0P4xza5",
+    "domain": "oauth.telegram.org",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  }
+]
