@@ -22,27 +22,30 @@ pipeline {
         stage('CI: Checkout Code') {
             steps {
                 script {
-                    // Fetch the latest changes from remote
+                    // Lấy thông tin mới nhất từ kho lưu trữ từ xa
                     sh "git fetch origin ${BRANCH_NAME}"
+                    
+                    // Kiểm tra sự thay đổi giữa nhánh local và nhánh remote
                     def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME}..${BRANCH_NAME}", returnStdout: true).trim()
 
                     if (changes) {
-                        echo "Changes detected. Checking out code..."
+                        echo "Có thay đổi. Tiến hành checkout mã nguồn..."
                         withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                             git branch: "${BRANCH_NAME}",
                                 credentialsId: "${JENKINS_CREDENTIALS_ID}",
                                 url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git"
                         }
-                        echo "Code checked out from ${BRANCH_NAME}"
+                        echo "Mã nguồn đã được checkout từ nhánh ${BRANCH_NAME}"
                     } else {
-                        echo "No changes detected. Skipping checkout."
+                        echo "Không có thay đổi. Bỏ qua bước checkout."
                     }
 
+                    // Tìm và gán đường dẫn kho lưu trữ vào biến REPO_PATH
                     env.REPO_PATH = sh(script: "find . -type d -name '${REPO_NAME}'", returnStdout: true).trim()
                     if (env.REPO_PATH) {
-                        echo "Found ${REPO_NAME} at: ${env.REPO_PATH}"
+                        echo "Đã tìm thấy ${REPO_NAME} tại: ${env.REPO_PATH}"
                     } else {
-                        error "Repository directory ${REPO_NAME} not found."
+                        error "Không tìm thấy thư mục kho lưu trữ ${REPO_NAME}."
                     }
                 }
                 sh """
