@@ -1,4 +1,3 @@
-
 pipeline {
     agent {
         docker { image 'mcr.microsoft.com/playwright:v1.47.2-jammy' }
@@ -13,7 +12,7 @@ pipeline {
         JENKINS_CREDENTIALS_ID = '5c7bd325-a531-4236-8534-102e45de69e7'
         chatId = '-1002308985537'
         botToken = '8085219018:AAHSTNao6k9OucZc15LQ476N-039N8NR7WI'
-        RESULTS_FILE = "${env.REPO_PATH}/Results/test_results.json" 
+        RESULTS_FILE = "${env.REPO_PATH}/Results/test_results.json"
     }
     triggers {
         cron('0 1 * * *')
@@ -53,6 +52,7 @@ pipeline {
                     cd ${env.REPO_PATH}
                     pwd
                     ls -la
+                    chmod +x ${FILE_SH}  # Cấp quyền thực thi cho TG_Auto.sh
                 """
             }
         }
@@ -66,7 +66,7 @@ pipeline {
 
                         if [ -d "node_modules" ]; then
                             echo "node_modules already exists. Checking Playwright version..."
-                            chmod +x node_modules/.bin/playwright
+                            chmod +x node_modules/.bin/playwright  # Cấp quyền thực thi cho Playwright
 
                             if npx playwright --version; then
                                 echo "Playwright is already installed. Skipping installation."
@@ -95,7 +95,8 @@ pipeline {
                     if (isUnix()) {
                         sh """
                             cd ${env.REPO_PATH}
-                            chmod +x ${FILE_SH}
+                            chmod +x ${FILE_SH}  # Cấp quyền thực thi lại nếu cần
+                            echo "Running the test script"
                             ./${FILE_SH}
                         """
                     } else {
