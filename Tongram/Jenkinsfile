@@ -14,16 +14,16 @@ pipeline {
         botToken = '8085219018:AAHSTNao6k9OucZc15LQ476N-039N8NR7WI'
         RESULTS_FILE = "Results/test_results.json"
     }
-   triggers {
-    cron('47 1 * * *') // Trigger vào 8:00 sáng giờ Việt Nam (UTC+7)
-}
 
+    triggers {
+        cron('47 1 * * *') // Trigger at 8:00 AM Vietnam Time (UTC+7)
+    }
 
     stages {
         stage('CI: Checkout Code') {
             steps {
                 script {
-                    // Kiểm tra sự thay đổi và checkout code
+                    // Checkout the code
                     withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                         git branch: "${BRANCH_NAME}",
                             credentialsId: "${JENKINS_CREDENTIALS_ID}",
@@ -50,91 +50,94 @@ pipeline {
                 }
             }
         }
-stage('CD: Run Tests') {
-    steps {
-        echo 'Starting Tests'
-        script {
-            try {
-                if (isUnix()) {
-                    sh """
-                        cd ${env.REPO_PATH}
-                        chmod +x ./node_modules/.bin/playwright
-                        ./${FILE_SH}
-                    """
-                } else {
-                    bat """
-                        cd ${env.REPO_PATH}
-                        ${FILE_BAT}
-                    """
-                }
-                echo "Tests executed"
-            } catch (Exception e) {
-                echo "Test execution failed"
-                // Kiểm tra lỗi liên quan đến cookies và dừng pipeline nếu cần
-                if (e.message.contains("cookies")) {
-                    currentBuild.result = 'FAILURE'
-                    error "Test failed due to cookie issue. Please update cookies locally and retry."
-                } else {
-                    currentBuild.result = 'FAILURE'
-                    error "Test execution failed due to another reason."
+
+        stage('CD: Run Tests') {
+            steps {
+                echo 'Starting Tests'
+                script {
+                    try {
+                        if (isUnix()) {
+                            sh """
+                                cd ${env.REPO_PATH}
+                                chmod +x ./node_modules/.bin/playwright
+                                ./${FILE_SH}
+                            """
+                        } else {
+                            bat """
+                                cd ${env.REPO_PATH}
+                                ${FILE_BAT}
+                            """
+                        }
+                        echo "Tests executed"
+                    } catch (Exception e) {
+                        echo "Test execution failed"
+                        // Check for errors related to cookies and stop the pipeline if necessary
+                        if (e.message.contains("cookies")) {
+                            currentBuild.result = 'FAILURE'
+                            error "Test failed due to cookie issue. Please update cookies locally and retry."
+                        } else {
+                            currentBuild.result = 'FAILURE'
+                            error "Test execution failed due to another reason."
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-stage('Archive Test Results') {
-    steps {
-        archiveArtifacts artifacts: '**/playwright-report/**/*', allowEmptyArchive: true
-        echo 'Test results archived.'
+        stage('Archive Test Results') {
+            steps {
+                archiveArtifacts artifacts: '**/playwright-report/**/*', allowEmptyArchive: true
+                echo 'Test results archived.'
+            }
+        }
     }
-}
 
-post {
-    success {
+    post {
+        success {
+            script {
+                sendBuildStatusMessage("✅ Status: ${currentBuild.currentResult}")
+                cleanTemporaryFolder()
+            }
+        }
+
+        failure {
+            script {
+                sendBuildStatusMessage("❌ Status: ${currentBuild.currentResult}")
+                cleanTemporaryFolder()
+            }
+        }
+    }
+
+    // Helper functions
+
+    def cleanTemporaryFolder() {
         script {
-            sendBuildStatusMessage("✅ Status: ${currentBuild.currentResult}")
-            cleanTemporaryFolder()
+            echo 'Cleaning up temporary files and directories...'
+            def pathsToCheck = [
+                "${env.REPO_PATH}/node_modules",
+                "${env.REPO_PATH}/playwright-report",
+                "${env.REPO_PATH}/Results",
+                "${env.REPO_PATH}/temp",
+                "${env.REPO_PATH}/logs"
+            ]
+            pathsToCheck.each { path ->
+                sh "rm -rf ${path} || true"
+            }
         }
     }
 
-    failure {
-        script {
-            sendBuildStatusMessage("❌ Status: ${currentBuild.currentResult}")
-            cleanTemporaryFolder()
-        }
-    }
-}
+    def sendBuildStatusMessage(statusBuild) {
+        TimeZone timeZone = TimeZone.getTimeZone('GMT+7')
+        def currentDate = new Date().format("dd-MM-yyyy", timeZone)
+        def currentTime = new Date().format("HH:mm:ss", timeZone)
+        def durationMillis = currentBuild.duration ?: 0
+        def minutes = (durationMillis / 60000).toInteger()
+        def seconds = ((durationMillis % 60000) / 1000).toInteger()
 
-
-def cleanTemporaryFolder() {
-    script {
-        echo 'Cleaning up temporary files and directories...'
-        def pathsToCheck = [
-            "${env.REPO_PATH}/node_modules",
-            "${env.REPO_PATH}/playwright-report",
-            "${env.REPO_PATH}/Results",
-            "${env.REPO_PATH}/temp",
-            "${env.REPO_PATH}/logs"
-        ]
-        pathsToCheck.each { path ->
-            sh "rm -rf ${path} || true"
-        }
-    }
-}
-
-def sendBuildStatusMessage(statusBuild) {
-    TimeZone timeZone = TimeZone.getTimeZone('GMT+7')
-    def currentDate = new Date().format("dd-MM-yyyy", timeZone)
-    def currentTime = new Date().format("HH:mm:ss", timeZone)
-    def durationMillis = currentBuild.duration ?: 0
-    def minutes = (durationMillis / 60000).toInteger()
-    def seconds = ((durationMillis % 60000) / 1000).toInteger()
-
-    def commitId = env.GIT_COMMIT ?: 'N/A'
-    def branchName = env.GIT_BRANCH ?: 'N/A'
-    
-    def message = """🌟🌟 ${statusBuild} 🌟🌟
+        def commitId = env.GIT_COMMIT ?: 'N/A'
+        def branchName = env.GIT_BRANCH ?: 'N/A'
+        
+        def message = """🌟🌟 ${statusBuild} 🌟🌟
 ══════════════════════ 
 📁 Repository: ${env.REPO_NAME}           
 📅 Date: ${currentDate} 
@@ -147,11 +150,11 @@ def sendBuildStatusMessage(statusBuild) {
 ══════════════════════
 🔗 Thank you for your attention! 🚀
 """
-    
-    sendMessageToTelegram(message)
-}
+        sendMessageToTelegram(message)
+    }
 
-def sendMessageToTelegram(message) {
-    def encodedMessage = URLEncoder.encode(message, "UTF-8")
-    sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text=${encodedMessage}"
+    def sendMessageToTelegram(message) {
+        def encodedMessage = URLEncoder.encode(message, "UTF-8")
+        sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text=${encodedMessage}"
+    }
 }
