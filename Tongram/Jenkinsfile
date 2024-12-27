@@ -1,3 +1,4 @@
+
 pipeline {
     agent {
         docker { image 'mcr.microsoft.com/playwright:v1.47.2-jammy' }
@@ -22,30 +23,30 @@ pipeline {
         stage('CI: Checkout Code') {
             steps {
                 script {
-                    // Lấy thông tin mới nhất từ kho lưu trữ từ xa
+                    // Fetch the latest changes from the remote repository
                     sh "git fetch origin ${BRANCH_NAME}"
-                    
-                    // Kiểm tra sự thay đổi giữa nhánh local và nhánh remote
+
+                    // Check for changes between local and remote branches
                     def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME} ${BRANCH_NAME} || echo 'No changes detected'", returnStdout: true).trim()
 
                     if (changes) {
-                        echo "Có thay đổi. Tiến hành checkout mã nguồn..."
+                        echo "Changes detected. Checking out code..."
                         withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                             git branch: "${BRANCH_NAME}",
                                 credentialsId: "${JENKINS_CREDENTIALS_ID}",
                                 url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git"
                         }
-                        echo "Mã nguồn đã được checkout từ nhánh ${BRANCH_NAME}"
+                        echo "Code checked out from branch ${BRANCH_NAME}"
                     } else {
-                        echo "Không có thay đổi. Bỏ qua bước checkout."
+                        echo "No changes detected. Skipping checkout."
                     }
 
-                    // Tìm và gán đường dẫn kho lưu trữ vào biến REPO_PATH
+                    // Search for the repository path and set the variable REPO_PATH
                     env.REPO_PATH = sh(script: "find . -type d -name '${REPO_NAME}'", returnStdout: true).trim()
                     if (env.REPO_PATH) {
-                        echo "Đã tìm thấy ${REPO_NAME} tại: ${env.REPO_PATH}"
+                        echo "Repository found at: ${env.REPO_PATH}"
                     } else {
-                        error "Không tìm thấy thư mục kho lưu trữ ${REPO_NAME}."
+                        error "Repository folder ${REPO_NAME} not found."
                     }
                 }
                 sh """
@@ -188,4 +189,4 @@ def sendBuildStatusMessage(statusBuild) {
 
 def sendMessageToTelegram(message) {
     sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text='${message}'"
-} 
+}
