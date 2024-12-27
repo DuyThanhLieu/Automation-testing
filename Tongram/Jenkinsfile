@@ -12,151 +12,113 @@ pipeline {
         JENKINS_CREDENTIALS_ID = '5c7bd325-a531-4236-8534-102e45de69e7'
         chatId = '-1002308985537'
         botToken = '8085219018:AAHSTNao6k9OucZc15LQ476N-039N8NR7WI'
-        RESULTS_FILE = "${env.REPO_PATH}/Results/test_results.json"
+        RESULTS_FILE = "Results/test_results.json"
     }
-    triggers {
-        cron('0 1 * * *')
-    }
+   triggers {
+    cron('47 1 * * *') // Trigger vào 8:00 sáng giờ Việt Nam (UTC+7)
+}
+
 
     stages {
         stage('CI: Checkout Code') {
             steps {
                 script {
-                    // Fetch the latest changes from the remote repository
-                    sh "git fetch origin ${BRANCH_NAME}"
-
-                    // Check for changes between local and remote branches
-                    def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME} ${BRANCH_NAME} || echo 'No changes detected'", returnStdout: true).trim()
-
-                    if (changes) {
-                        echo "Changes detected. Checking out code..."
-                        withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                            git branch: "${BRANCH_NAME}",
-                                credentialsId: "${JENKINS_CREDENTIALS_ID}",
-                                url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git"
-                        }
-                        echo "Code checked out from branch ${BRANCH_NAME}"
-                    } else {
-                        echo "No changes detected. Skipping checkout."
+                    // Kiểm tra sự thay đổi và checkout code
+                    withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                        git branch: "${BRANCH_NAME}",
+                            credentialsId: "${JENKINS_CREDENTIALS_ID}",
+                            url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git"
                     }
-
-                    // Search for the repository path and set the variable REPO_PATH
-                    env.REPO_PATH = sh(script: "find . -type d -name '${REPO_NAME}'", returnStdout: true).trim()
-                    if (env.REPO_PATH) {
-                        echo "Repository found at: ${env.REPO_PATH}"
-                    } else {
-                        error "Repository folder ${REPO_NAME} not found."
-                    }
+                    env.REPO_PATH = "${WORKSPACE}/${REPO_NAME}"
                 }
                 sh """
                     cd ${env.REPO_PATH}
-                    pwd
-                    ls -la
-                    chmod +x ${FILE_SH}  # Cấp quyền thực thi cho TG_Auto.sh
+                    chmod +x ${FILE_SH}
                 """
             }
         }
 
-         stage('Setup Dependencies') {
+        stage('Setup Dependencies') {
             steps {
                 echo 'Setting up dependencies'
                 script {
                     sh """
                         cd ${env.REPO_PATH}
-
-                        if [ -d "node_modules" ]; then
-                            echo "node_modules already exists. Checking Playwright version..."
-                            chmod +x node_modules/.bin/playwright
-
-                            if npx playwright --version; then
-                                echo "Playwright is already installed. Skipping installation."
-                            else
-                                echo "Playwright is not installed. Installing..."
-                                rm -rf node_modules package-lock.json
-                                npm install
-                                npx playwright install
-                                npm install @playwright/test@latest
-                            fi
-                        else
-                            echo "node_modules does not exist. Installing dependencies..."
-                            npm install
-                            npx playwright install
-                            npm install @playwright/test@latest
-                        fi
+                        npm ci || npm install
+                        npx playwright install || echo "Playwright already installed."
                     """
                 }
             }
         }
-
-
-
-        stage('CD: Run Tests') {
-            steps {
-                echo 'Starting Tests'
-                script {
-                    if (isUnix()) {
-                        sh """
-                            cd ${env.REPO_PATH}
-                            chmod +x ${FILE_SH}  # Cấp quyền thực thi lại nếu cần
-                            echo "Running the test script"
-                            ./${FILE_SH}
-                        """
-                    } else {
-                        bat """
-                            cd ${env.REPO_PATH}
-                            ${FILE_BAT}
-                        """
-                    }
+stage('CD: Run Tests') {
+    steps {
+        echo 'Starting Tests'
+        script {
+            try {
+                if (isUnix()) {
+                    sh """
+                        cd ${env.REPO_PATH}
+                        chmod +x ./node_modules/.bin/playwright
+                        ./${FILE_SH}
+                    """
+                } else {
+                    bat """
+                        cd ${env.REPO_PATH}
+                        ${FILE_BAT}
+                    """
                 }
                 echo "Tests executed"
-            }
-        }
-
-        stage('Archive Test Results') {
-            steps {
-                archiveArtifacts artifacts: '**/playwright-report/**/*', allowEmptyArchive: true
-                echo 'Test results archived.'
-            }
-        }
-    }
-
-    post {
-        success {
-            script {
-                sendBuildStatusMessage("✅ Status: ${currentBuild.currentResult}")
-                cleanTemporaryFolder()
-            }
-        }
-
-        failure {
-            script {
-                sendBuildStatusMessage("❌ Status: ${currentBuild.currentResult}")
-                cleanTemporaryFolder()
+            } catch (Exception e) {
+                echo "Test execution failed"
+                // Kiểm tra lỗi liên quan đến cookies và dừng pipeline nếu cần
+                if (e.message.contains("cookies")) {
+                    currentBuild.result = 'FAILURE'
+                    error "Test failed due to cookie issue. Please update cookies locally and retry."
+                } else {
+                    currentBuild.result = 'FAILURE'
+                    error "Test execution failed due to another reason."
+                }
             }
         }
     }
 }
 
+stage('Archive Test Results') {
+    steps {
+        archiveArtifacts artifacts: '**/playwright-report/**/*', allowEmptyArchive: true
+        echo 'Test results archived.'
+    }
+}
+
+post {
+    success {
+        script {
+            sendBuildStatusMessage("✅ Status: ${currentBuild.currentResult}")
+            cleanTemporaryFolder()
+        }
+    }
+
+    failure {
+        script {
+            sendBuildStatusMessage("❌ Status: ${currentBuild.currentResult}")
+            cleanTemporaryFolder()
+        }
+    }
+}
+
+
 def cleanTemporaryFolder() {
     script {
         echo 'Cleaning up temporary files and directories...'
         def pathsToCheck = [
-            "${env.REPO_PATH}/package-lock.json",
+            "${env.REPO_PATH}/node_modules",
             "${env.REPO_PATH}/playwright-report",
             "${env.REPO_PATH}/Results",
-            "${env.REPO_PATH}/test-results",
             "${env.REPO_PATH}/temp",
             "${env.REPO_PATH}/logs"
         ]
-        if (isUnix()) {
-            pathsToCheck.each { path -> 
-                sh "rm -rf ${path} || true"
-            }
-        } else {
-            pathsToCheck.each { path -> 
-                def winPath = path.replace("/", "\\")
-                bat "del /Q ${winPath} || echo 'File not found'"
-            }
+        pathsToCheck.each { path ->
+            sh "rm -rf ${path} || true"
         }
     }
 }
@@ -166,30 +128,30 @@ def sendBuildStatusMessage(statusBuild) {
     def currentDate = new Date().format("dd-MM-yyyy", timeZone)
     def currentTime = new Date().format("HH:mm:ss", timeZone)
     def durationMillis = currentBuild.duration ?: 0
-    def minutes = (durationMillis / 60000).toInteger()  
-    def seconds = ((durationMillis % 60000) / 1000).toInteger()  
+    def minutes = (durationMillis / 60000).toInteger()
+    def seconds = ((durationMillis % 60000) / 1000).toInteger()
 
     def commitId = env.GIT_COMMIT ?: 'N/A'
     def branchName = env.GIT_BRANCH ?: 'N/A'
     
-    def message = """
-    🌟🌟 ${statusBuild} 🌟🌟
-    ══════════════════════ 
-    📁 Repository: ${env.REPO_NAME}           
-    📅 Date: ${currentDate} 
-    🕒 Time: ${currentTime}                                  
-    ⏳ Duration: ${minutes} min ${seconds} sec  
-    ══════════════════════
-    🌿 Branch: ${branchName}       
-    🏷️ Commit ID: ${commitId}       
-    🔗 Jenkins Server: ${env.BUILD_URL}       
-    ══════════════════════
-    🔗 Thank you for your attention! 🚀
-    """
+    def message = """🌟🌟 ${statusBuild} 🌟🌟
+══════════════════════ 
+📁 Repository: ${env.REPO_NAME}           
+📅 Date: ${currentDate} 
+🕒 Time: ${currentTime}                                  
+⏳ Duration: ${minutes} min ${seconds} sec  
+══════════════════════
+🌿 Branch: ${branchName}       
+🏷️ Commit ID: ${commitId}       
+🔗 Jenkins Server: ${env.BUILD_URL}       
+══════════════════════
+🔗 Thank you for your attention! 🚀
+"""
     
     sendMessageToTelegram(message)
 }
 
 def sendMessageToTelegram(message) {
-    sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text='${message}'"
+    def encodedMessage = URLEncoder.encode(message, "UTF-8")
+    sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text=${encodedMessage}"
 }
