@@ -2,33 +2,36 @@ pipeline {
     agent {
         docker { image 'mcr.microsoft.com/playwright:v1.47.2-jammy' }
     }
-environment {
+    environment {
         REPO_NAME = 'Tongram'
         FILE_SH = 'TG_Auto.sh'
         FILE_BAT = 'TG_Auto.bat'
-         SERVER_PATH = "Automation-testing/${REPO_NAME}"
-        SERVER_PROJECT = "automation-testing"
+        SERVER_PATH = "Automation-testing/${REPO_NAME}"
+        SERVER_PROJECT = "Automation-testing"
         BRANCH_NAME = 'main'
         JENKINS_CREDENTIALS_ID = '5c7bd325-a531-4236-8534-102e45de69e7'
         chatId = '-1002308985537'
-        botToken = '808521`9018:AAHSTNao6k9OucZc15LQ476N-039N8NR7WI'
+        botToken = '8085219018:AAHSTNao6k9OucZc15LQ476N-039N8NR7WI'
         RESULTS_FILE = "${env.REPO_PATH}/Results/test_results.json" 
     }
     triggers {
         cron('0 1 * * *')
     }
-    
+
     stages {
         stage('CI: Checkout Code') {
             steps {
                 script {
+                    // Fetch the latest changes from remote
+                    sh "git fetch origin ${BRANCH_NAME}"
                     def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME}..${BRANCH_NAME}", returnStdout: true).trim()
+
                     if (changes) {
                         echo "Changes detected. Checking out code..."
                         withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                             git branch: "${BRANCH_NAME}",
                                 credentialsId: "${JENKINS_CREDENTIALS_ID}",
-                                url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git" // nhớ phải thêm .git
+                                url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git"
                         }
                         echo "Code checked out from ${BRANCH_NAME}"
                     } else {
@@ -80,31 +83,6 @@ environment {
                 }
             }
         }
-        // stage('Setup Dependencies') {
-        //     steps {
-        //         echo 'Setting up dependencies'
-        //         script {
-        //             sh """
-        //                 cd ${env.REPO_PATH}
-
-        //                 if [ ! -d "node_modules" ]; then
-        //                     echo "node_modules does not exist. Installing dependencies..."
-        //                     chmod +x node_modules/.bin/playwright
-        //                     npm install
-        //                 fi
-                        
-        //                 if ! npx playwright --version; then
-        //                     echo "Playwright is not installed. Installing Playwright and browsers..."
-        //                     rm -rf node_modules package-lock.json
-        //                     npx playwright install
-        //                     npm install @playwright/test@latest
-        //                 else
-        //                     echo "Playwright is already installed. Skipping installation."
-        //                 fi
-        //             """
-        //         }
-        //     }
-        // }
 
         stage('CD: Run Tests') {
             steps {
@@ -113,7 +91,7 @@ environment {
                     if (isUnix()) {
                         sh """
                             cd ${env.REPO_PATH}
-                            chmod +x ${FILE_SH} 
+                            chmod +x ${FILE_SH}
                             ./${FILE_SH}
                         """
                     } else {
@@ -164,39 +142,17 @@ def cleanTemporaryFolder() {
             "${env.REPO_PATH}/logs"
         ]
         if (isUnix()) {
-            pathsToCheck.each { path ->
-                sh "if [ -e '${path}' ]; then echo '${path} exists'; fi"
+            pathsToCheck.each { path -> 
+                sh "rm -rf ${path} || true"
             }
-
-            sh """
-                rm -rf ${env.REPO_PATH}/package-lock.json 
-                rm -rf ${env.REPO_PATH}/playwright-report 
-                rm -rf ${env.REPO_PATH}/Results 
-                rm -rf ${env.REPO_PATH}/test-results 
-                rm -rf ${env.REPO_PATH}/temp/*
-                rm -rf ${env.REPO_PATH}/logs/*        
-                find ${env.REPO_PATH} -name '*.log' -delete  
-            """
         } else {
-            pathsToCheck.each { path ->
+            pathsToCheck.each { path -> 
                 def winPath = path.replace("/", "\\")
-                bat "if exist '${winPath}' (echo '${winPath} exists')"
+                bat "del /Q ${winPath} || echo 'File not found'"
             }
-
-            bat """
-                del /Q ${env.REPO_PATH}\\package-lock.json 
-                rmdir /s /q ${env.REPO_PATH}\\playwright-report 
-                rmdir /s /q ${env.REPO_PATH}\\Results 
-                rmdir /s /q ${env.REPO_PATH}\\test-results 
-                del /Q ${env.REPO_PATH}\\temp\\* 
-                del /Q ${env.REPO_PATH}\\logs\\*           
-                del /Q ${env.REPO_PATH}\\*.log              
-            """
         }
     }
 }
-
-
 
 def sendBuildStatusMessage(statusBuild) {
     TimeZone timeZone = TimeZone.getTimeZone('GMT+7')
@@ -226,8 +182,6 @@ def sendBuildStatusMessage(statusBuild) {
     
     sendMessageToTelegram(message)
 }
-
-
 
 def sendMessageToTelegram(message) {
     sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text='${message}'"
