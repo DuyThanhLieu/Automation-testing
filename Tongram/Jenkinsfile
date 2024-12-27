@@ -57,36 +57,37 @@ pipeline {
             }
         }
 
-        stage('Setup Dependencies') {
-    steps {
-        echo 'Setting up dependencies'
-        script {
-            sh """
-                cd ${env.REPO_PATH}
+         stage('Setup Dependencies') {
+            steps {
+                echo 'Setting up dependencies'
+                script {
+                    sh """
+                        cd ${env.REPO_PATH}
 
-                if [ -d "node_modules" ]; then
-                    echo "node_modules already exists. Checking Playwright version..."
-                    chmod -R +x ./node_modules  # Cấp quyền thực thi cho tất cả tệp trong node_modules
+                        if [ -d "node_modules" ]; then
+                            echo "node_modules already exists. Checking Playwright version..."
+                            chmod +x node_modules/.bin/playwright
 
-                    if npx playwright --version; then
-                        echo "Playwright is already installed. Skipping installation."
-                    else
-                        echo "Playwright is not installed. Installing..."
-                        rm -rf node_modules package-lock.json
-                        npm install
-                        npx playwright install
-                        npm install @playwright/test@latest
-                    fi
-                else
-                    echo "node_modules does not exist. Installing dependencies..."
-                    npm install
-                    npx playwright install
-                    npm install @playwright/test@latest
-                fi
-            """
+                            if npx playwright --version; then
+                                echo "Playwright is already installed. Skipping installation."
+                            else
+                                echo "Playwright is not installed. Installing..."
+                                rm -rf node_modules package-lock.json
+                                npm install
+                                npx playwright install
+                                npm install @playwright/test@latest
+                            fi
+                        else
+                            echo "node_modules does not exist. Installing dependencies..."
+                            npm install
+                            npx playwright install
+                            npm install @playwright/test@latest
+                        fi
+                    """
+                }
+            }
         }
-    }
-}
+
 
 
         stage('CD: Run Tests') {
