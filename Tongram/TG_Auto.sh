@@ -5,7 +5,16 @@
 # npx playwright test TG_VerifyPoint.spec.js --reporter=html,json --output=./Results --workers=1
 
 # npx playwright test TG_Actions.spec.js --reporter=line --workers=1
-npx playwright test TG_Languages.spec.js --reporter=line --workers=1 
+# npx playwright test TG_Languages.spec.js --reporter=line --workers=1 
+#!/bin/bash
+echo "Starting Playwright Tests"
+
+# Cấp quyền thực thi nếu cần
+chmod +x ./node_modules/.bin/playwright
+
+# Chạy bài kiểm tra cụ thể
+npx playwright test TG_Languages.spec.js --reporter=line --workers=1
+
 
 # npx playwright test TG_DailyTask.spec.js TG_VerifyPoint.spec.js TG_Actions.spec.js TG_Languages.spec.js --headed --reporter=html --output=./Results --workers=1
 
