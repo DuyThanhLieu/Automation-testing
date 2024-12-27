@@ -26,7 +26,9 @@ pipeline {
                     sh "git fetch origin ${BRANCH_NAME}"
                     
                     // Kiểm tra sự thay đổi giữa nhánh local và nhánh remote
-                    def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME}..${BRANCH_NAME}", returnStdout: true).trim()
+                    def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME} ${BRANCH_NAME} || echo 'Error occurred in git diff'", returnStdout: true).trim()
+
+
 
                     if (changes) {
                         echo "Có thay đổi. Tiến hành checkout mã nguồn..."
