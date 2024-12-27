@@ -17,7 +17,8 @@
     "start": "npx playwright test"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "playwright": "^1.49.1"
   },
   "keywords": [],
   "homepage": "https://github.com/DuyThanhLieu/Tongram-Web-3-App-Store-for-TON-BlockChain#readme",
