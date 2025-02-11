@@ -7,7 +7,7 @@ pipeline {
        REPO_NAME = 'Vocaloid'
         FILE_SH = 'Vocaloid_Auto.sh'
         FILE_BAT = 'Vocaloid_Auto.bat'
-        COMMAND = 'npx playwright test BS_Actions.spec.js --reporter=line --workers=1'
+        // COMMAND = 'npx playwright test BS_Actions.spec.js --reporter=line --workers=1'
         SERVER_PATH = "Automation-testing/${REPO_NAME}"
         BRANCH_NAME = 'main'
     }
