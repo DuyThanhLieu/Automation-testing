@@ -2,48 +2,56 @@ pipeline {
     agent {
         docker { image 'mcr.microsoft.com/playwright:v1.46.0-jammy' }
     }
+
     environment {
         GITHUB_URL = 'https://github.com/DuyThanhLieu/Automation-testing.git'
-       REPO_NAME = 'Vocaloid'
+        REPO_NAME = 'Vocaloid'
         FILE_SH = 'Vocaloid_Auto.sh'
         FILE_BAT = 'Vocaloid_Auto.bat'
-        // COMMAND = 'npx playwright test BS_Actions.spec.js --reporter=line --workers=1'
+        COMMAND = 'npx playwright test BS_Actions.spec.js --reporter=line --workers=1'
         SERVER_PATH = "Automation-testing/${REPO_NAME}"
         BRANCH_NAME = 'main'
     }
+
     triggers {
-        cron('0 1 * * *')
+        cron('0 1 * * *') // Chạy lúc 1:00 AM hàng ngày
     }
+
     stages {
         stage('CI: Checkout Code') {
             steps {
-                git branch: "${BRANCH_NAME}", url: "${GITHUB_URL}"
-                echo "Code checked out from ${BRANCH_NAME}"
-                echo 'Current working directory:'
-                sh 'pwd'
-                echo "Finding ${REPO_NAME} directory:"
                 script {
-                    def repoPath = sh(script: "find . -type d -name '${REPO_NAME}'", returnStdout: true).trim()
-                    echo "Found ${REPO_NAME} at: ${repoPath}"
-                    env.REPO_PATH = repoPath
+                    echo "Cloning repository from ${GITHUB_URL}"
+                    sh "git clone -b ${env.BRANCH_NAME} ${env.GITHUB_URL} ${env.SERVER_PATH}"
+
+                    echo "Setting up repository path..."
+                    env.REPO_PATH = "${env.SERVER_PATH}"
+
+                    echo "Current working directory:"
+                    sh 'pwd'
+
+                    echo "Listing contents of ${env.REPO_PATH}:"
+                    sh "ls -la ${env.REPO_PATH}"
+
+                    echo "Checking if Data directory exists..."
+                    sh """
+                        if [ -d "${env.REPO_PATH}/Data" ]; then
+                            echo "Data directory found."
+                        else
+                            echo "Data directory not found."
+                        fi
+                    """
                 }
-                echo "Changing directory to ${REPO_NAME} and listing contents:"
-                sh """
-                    cd ${env.REPO_PATH}
-                    pwd
-                    ls -la
-                """
-                echo "Checking if Data directory exists in ${REPO_PATH}:"
-                sh "ls -la ${env.REPO_PATH}/Data"
             }
         }
+
         stage('Setup Dependencies') {
             steps {
                 echo 'Setting up dependencies'
                 script {
                     sh """
                         cd ${env.REPO_PATH}
-
+                        
                         if [ -d "node_modules" ]; then
                             echo "node_modules already exists. Checking Playwright version..."
                             chmod +x node_modules/.bin/playwright
@@ -67,61 +75,62 @@ pipeline {
                 }
             }
         }
+
         stage('CD: Run Tests') {
             steps {
                 echo 'Starting Tests'
                 script {
-                    if (isUnix()) {
+                    try {
                         sh """
                             cd ${env.REPO_PATH}
-                            ${COMMAND}
+                            ${env.COMMAND}
                         """
-                    } else {
-                        bat """
-                            cd ${env.REPO_PATH}
-                            ${COMMAND}
-                        """
+                    } catch (Exception e) {
+                        echo "Test execution failed: ${e.getMessage()}"
+                        currentBuild.result = 'FAILURE'
                     }
                 }
                 echo "Tests executed"
             }
         }
+
         stage('Archive Test Results') {
             steps {
                 archiveArtifacts artifacts: '**/playwright-report/**/*', allowEmptyArchive: true
-echo 'Test results archived.'
+                echo 'Test results archived.'
             }
         }
     }
+
     post {
-        success {
+        always {
             script {
-                def status = currentBuild.result ?: 'SUCCESS'
-                echo "All test cases passed. Build status: ${status}"
+                echo "Cleaning up temporary files..."
                 if (isUnix()) {
-                    if (fileExists("${SERVER_PATH}/temp")) {
-                        sh "rm -rf ${SERVER_PATH}/temp/*"
-                    } else {
-                        echo "Temporary folder does not exist."
-                    }
+                    sh """
+                        if [ -d "${SERVER_PATH}/temp" ]; then
+                            rm -rf ${SERVER_PATH}/temp/*
+                        else
+                            echo "Temporary folder does not exist."
+                        fi
+                    """
                 } else {
-                    bat "if exist ${SERVER_PATH}\\temp\\* del /Q ${SERVER_PATH}\\temp\\*"
+                    bat """
+                        if exist ${SERVER_PATH}\\temp\\* del /Q ${SERVER_PATH}\\temp\\*
+                    """
                 }
             }
         }
+
+        success {
+            script {
+                echo "✅ All test cases passed successfully!"
+            }
+        }
+
         failure {
             script {
-                def status = currentBuild.result ?: 'FAILURE'
-                echo "Some test cases failed. Build status: ${status}"
-                if (isUnix()) {
-                    if (fileExists("${SERVER_PATH}/temp")) {
-                        sh "rm -rf ${SERVER_PATH}/temp/*"
-                    } else {
-                        echo "Temporary folder does not exist."
-                    }
-                } else {
-                    bat "if exist ${SERVER_PATH}\\temp\\* del /Q ${SERVER_PATH}\\temp\\*"
-                }
+                echo "❌ Some test cases failed. Check the logs."
             }
         }
     }
