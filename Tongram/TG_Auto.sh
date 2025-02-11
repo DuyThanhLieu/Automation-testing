@@ -11,7 +11,7 @@
 #!/bin/bash
 echo "Setting up Playwright permissions..."
 chmod +x ./node_modules/.bin/playwright
-
+chmod +x TG_Auto.sh
 echo "Running Playwright tests..."
 npx playwright test TG_Languages.spec.js --reporter=line --workers=1
 

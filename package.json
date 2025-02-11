@@ -5,22 +5,21 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DuyThanhLieu/Tongram-Web-3-App-Store-for-TON-BlockChain.git"
+    "url": "git+https://github.com/DuyThanhLieu/Automation-testing.git"
   },
   "author": "Thanh Lieu <duythanhlieu2001@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
+    "@playwright/test": "^1.48.1",
     "@types/node": "^22.7.4"
   },
   "scripts": {
     "start": "npx playwright test"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2",
-    "playwright": "^1.49.1"
+    "node-fetch": "^3.3.2"
   },
   "keywords": [],
-  "homepage": "https://github.com/DuyThanhLieu/Tongram-Web-3-App-Store-for-TON-BlockChain#readme",
+  "homepage": "https://github.com/DuyThanhLieu/Automation-testing#readme",
   "description": ""
 }
