@@ -22,8 +22,9 @@ pipeline {
             steps {
                 script {
                     sh "git fetch origin ${BRANCH_NAME}"
-                    def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME} ${BRANCH_NAME} || echo 'No changes detected'", returnStdout: true).trim()
-                    if (changes) {
+                    def changes = sh(script: "git diff --quiet origin/${BRANCH_NAME} ${BRANCH_NAME} || echo 'changed'", returnStdout: true).trim()
+                    
+                    if (changes == 'changed') {
                         echo "Changes detected. Checking out code..."
                         withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                             git branch: "${BRANCH_NAME}",
@@ -33,13 +34,14 @@ pipeline {
                     } else {
                         echo "No changes detected. Skipping checkout."
                     }
-                    env.REPO_PATH = sh(script: "find . -type d -name '${REPO_NAME}'", returnStdout: true).trim()
+
+                    env.REPO_PATH = sh(script: "find . -type d -name '${REPO_NAME}' -print -quit", returnStdout: true).trim()
                     if (!env.REPO_PATH) {
-                        error "Repository folder ${REPO_NAME} not found."
+                        error "❌ Repository folder '${REPO_NAME}' not found."
                     }
                 }
                 sh """
-                    cd ${env.REPO_PATH}
+                    cd '${env.REPO_PATH}'
                     chmod +x ${FILE_SH}
                 """
             }
@@ -49,17 +51,19 @@ pipeline {
             steps {
                 script {
                     sh """
-                        cd ${env.REPO_PATH}
+                        cd '${env.REPO_PATH}'
                         if [ -d "node_modules" ]; then
                             echo "node_modules exists. Checking Playwright..."
                             if npx playwright --version; then
-                                echo "Playwright installed. Skipping."
+                                echo "✅ Playwright is installed. Skipping."
                             else
+                                echo "🔄 Reinstalling dependencies..."
                                 rm -rf node_modules package-lock.json
                                 npm install
                                 npx playwright install
                             fi
                         else
+                            echo "📦 Installing dependencies..."
                             npm install
                             npx playwright install
                         fi
@@ -73,13 +77,13 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh """
-                            cd ${env.REPO_PATH}
+                            cd '${env.REPO_PATH}'
                             chmod +x ${FILE_SH}
                             ./${FILE_SH}
                         """
                     } else {
                         bat """
-                            cd ${env.REPO_PATH}
+                            cd '${env.REPO_PATH}'
                             ${FILE_BAT}
                         """
                     }
@@ -97,13 +101,13 @@ pipeline {
     post {
         success {
             script {
-                sendBuildStatusMessage("✅ Status: ${currentBuild.currentResult}")
+                sendBuildStatusMessage("✅ SUCCESS")
                 cleanTemporaryFolder()
             }
         }
         failure {
             script {
-                sendBuildStatusMessage("❌ Status: ${currentBuild.currentResult}")
+                sendBuildStatusMessage("❌ FAILURE")
                 cleanTemporaryFolder()
             }
         }
@@ -118,7 +122,9 @@ def cleanTemporaryFolder() {
             "${env.REPO_PATH}/Results",
             "${env.REPO_PATH}/test-results"
         ]
-        pathsToCheck.each { path -> sh "rm -rf ${path} || true" }
+        pathsToCheck.each { path ->
+            sh "rm -rf '${path}' || true"
+        }
     }
 }
 
@@ -126,6 +132,7 @@ def sendBuildStatusMessage(statusBuild) {
     TimeZone timeZone = TimeZone.getTimeZone('GMT+7')
     def currentDate = new Date().format("dd-MM-yyyy", timeZone)
     def currentTime = new Date().format("HH:mm:ss", timeZone)
+
     def message = """
     🌟 ${statusBuild} 🌟
     📁 Repository: ${env.REPO_NAME}
@@ -133,9 +140,11 @@ def sendBuildStatusMessage(statusBuild) {
     🕒 Time: ${currentTime}
     🔗 Jenkins Server: ${env.BUILD_URL}
     """
+    
     sendMessageToTelegram(message)
 }
 
 def sendMessageToTelegram(message) {
-    sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text='${message}'"
+    def safeMessage = message.replaceAll("'", "")
+    sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text='${safeMessage}'"
 }
