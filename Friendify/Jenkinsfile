@@ -1,0 +1,141 @@
+pipeline {
+    agent {
+        docker { image 'mcr.microsoft.com/playwright:v1.47.2-jammy' }
+    }
+    environment {
+        REPO_NAME = 'Friendify'
+        FILE_SH = 'FD_Auto.sh'
+        FILE_BAT = 'FD_Auto.bat'
+        SERVER_PATH = "Automation-testing/${REPO_NAME}"
+        SERVER_PROJECT = "Automation-testing"
+        BRANCH_NAME = 'main'
+        JENKINS_CREDENTIALS_ID = '5c7bd325-a531-4236-8534-102e45de69e7'
+        chatId = '-1002308985537'
+        botToken = '8085219018:AAHSTNao6k9OucZc15LQ476N-039N8NR7WI'
+    }
+    triggers {
+        cron('0 1 * * *')
+    }
+
+    stages {
+        stage('CI: Checkout Code') {
+            steps {
+                script {
+                    sh "git fetch origin ${BRANCH_NAME}"
+                    def changes = sh(script: "git diff --name-only origin/${BRANCH_NAME} ${BRANCH_NAME} || echo 'No changes detected'", returnStdout: true).trim()
+                    if (changes) {
+                        echo "Changes detected. Checking out code..."
+                        withCredentials([usernamePassword(credentialsId: "${JENKINS_CREDENTIALS_ID}", usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                            git branch: "${BRANCH_NAME}",
+                                credentialsId: "${JENKINS_CREDENTIALS_ID}",
+                                url: "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/DuyThanhLieu/Automation-testing.git"
+                        }
+                    } else {
+                        echo "No changes detected. Skipping checkout."
+                    }
+                    env.REPO_PATH = sh(script: "find . -type d -name '${REPO_NAME}'", returnStdout: true).trim()
+                    if (!env.REPO_PATH) {
+                        error "Repository folder ${REPO_NAME} not found."
+                    }
+                }
+                sh """
+                    cd ${env.REPO_PATH}
+                    chmod +x ${FILE_SH}
+                """
+            }
+        }
+
+        stage('Setup Dependencies') {
+            steps {
+                script {
+                    sh """
+                        cd ${env.REPO_PATH}
+                        if [ -d "node_modules" ]; then
+                            echo "node_modules exists. Checking Playwright..."
+                            if npx playwright --version; then
+                                echo "Playwright installed. Skipping."
+                            else
+                                rm -rf node_modules package-lock.json
+                                npm install
+                                npx playwright install
+                            fi
+                        else
+                            npm install
+                            npx playwright install
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('CD: Run Tests') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh """
+                            cd ${env.REPO_PATH}
+                            chmod +x ${FILE_SH}
+                            ./${FILE_SH}
+                        """
+                    } else {
+                        bat """
+                            cd ${env.REPO_PATH}
+                            ${FILE_BAT}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Archive Test Results') {
+            steps {
+                archiveArtifacts artifacts: '**/playwright-report/**/*', allowEmptyArchive: true
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                sendBuildStatusMessage("✅ Status: ${currentBuild.currentResult}")
+                cleanTemporaryFolder()
+            }
+        }
+        failure {
+            script {
+                sendBuildStatusMessage("❌ Status: ${currentBuild.currentResult}")
+                cleanTemporaryFolder()
+            }
+        }
+    }
+}
+
+def cleanTemporaryFolder() {
+    script {
+        def pathsToCheck = [
+            "${env.REPO_PATH}/package-lock.json",
+            "${env.REPO_PATH}/playwright-report",
+            "${env.REPO_PATH}/Results",
+            "${env.REPO_PATH}/test-results"
+        ]
+        pathsToCheck.each { path -> sh "rm -rf ${path} || true" }
+    }
+}
+
+def sendBuildStatusMessage(statusBuild) {
+    TimeZone timeZone = TimeZone.getTimeZone('GMT+7')
+    def currentDate = new Date().format("dd-MM-yyyy", timeZone)
+    def currentTime = new Date().format("HH:mm:ss", timeZone)
+    def message = """
+    🌟 ${statusBuild} 🌟
+    📁 Repository: ${env.REPO_NAME}
+    📅 Date: ${currentDate}
+    🕒 Time: ${currentTime}
+    🔗 Jenkins Server: ${env.BUILD_URL}
+    """
+    sendMessageToTelegram(message)
+}
+
+def sendMessageToTelegram(message) {
+    sh "curl -s -X POST https://api.telegram.org/bot${botToken}/sendMessage -d chat_id=${chatId} -d text='${message}'"
+}
